@@ -1,2 +1,2 @@
-# print_ip_new
-diffrent templates for print ip adresses
+# print_ip
+templates for print diffrent type ip struct
