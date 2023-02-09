@@ -11,73 +11,79 @@
 #include <tuple>
 #include <iostream>
 #include <cstdlib>
+#include <algorithm>
 
 #define PointDeterminated  '.'
 
 using namespace std;
+/// @brief ////////
+namespace temp{
+    /// @brief ///
+    /// @tparam T 
+    template< typename T >
+    using EnableInteger = std::enable_if_t< std::is_integral_v< T > && !std::is_same_v<T, bool>> ;
+
+    /// @brief /
+    /// @tparam T 
+    template<typename T>
+    using EnableString = enable_if_t<std::is_same_v<std::decay_t<T>, std::string>>;
 
 
-/**
- * @brief template Prints for int type out contents of an ip address represented.
- */
-/// @brief 
+    /// @brief ///////
+    /// @tparam T 
+    template <typename T>
+    using EnableListVector = enable_if_t<is_same_v< T, vector<typename T::value_type>> 
+                                || is_same_v< T, list<typename T::value_type>>, void>;
+
+    template<typename T, typename... Types>
+    using EnableAllTypesEqual = enable_if_t<std::conjunction_v<std::is_same<T, Types>...>>;
+}
+
+/// @brief ///
 /// @tparam T 
-/// @tparam type 
-/// @param data 
-template <typename T, typename std::enable_if<std::is_integral< T >::value, bool>::type = true>
-void print_ip(T data){
-    static constexpr size_t size_byte = sizeof(T);
-    for(auto i = size_byte; i--;){
-        cout<<((data>>(i<<3))&0xff);
-        if(i>0)
-            cout<<PointDeterminated;
-    }
+/// @param val 
+/// @return 
+template< typename T>
+typename temp::EnableInteger< T >
+print_ip(const T& val){
+    uint8_t* sim = (uint8_t *) &val + sizeof(T)-1;
+    for (uint16_t i = 0; i < sizeof(T)-1; i++)
+        cout<<(uint16_t)*sim--<<PointDeterminated; 
+
+    cout<<(uint16_t)*sim<<endl;
+}
+/// @brief ///
+/// @tparam T 
+/// @param s 
+/// @return 
+template<typename T>
+typename temp::EnableString<T>
+print_ip(const T& s){
+    cout<<s<<endl;
+}
+
+/// @brief ///
+/// @tparam T 
+/// @param conteiner 
+/// @return 
+template<typename T>
+typename temp::EnableListVector<T>
+print_ip(const T& conteiner){
+
+    if(conteiner.empty()) return;
+
+    cout << *conteiner.cbegin();
+    std::for_each(std::next(conteiner.cbegin()), std::cend(conteiner), [](const auto &i){ cout << PointDeterminated << i; });
     cout<<endl;
 }
-/**
- *  @brief Prints out contents of an ip address represented as a string.
- */
-/// @brief 
-/// @param data 
-void print_ip(const string& data)
-{
-    cout << data << endl;
-}
 
-/**
- * @brief template Prints for is std::vector<int> or std::list<short> type out contents of an ip address represented.
- */
-/// @brief 
-/// @tparam T 
-/// @tparam type 
-/// @param container 
-template <typename T, 
-typename enable_if<is_same< T, vector<int>>::value or is_same< T, list<short>>::value, bool>::type = true>
-void print_ip(T container){
-    for (auto it = container.begin(); it != container.end(); ++it)
-    {
-        cout << *it;
-        if (it != prev(container.end()))
-            cout << PointDeterminated;
-    }
-    cout << endl;
-}
-/**
- * @brief template Prints for tuple type out contents of an ip address represented.
- */
-/// @brief 
-/// @tparam TypeFirst 
-/// @tparam ...Types 
-/// @param tFirst 
-/// @param ...tArgs 
-template <typename TypeFirst, typename... Types>
-void PrintTuple(const TypeFirst& tFirst, const Types&... tArgs) {
+template <typename T, typename... Types>
+void PrintTuple(const T& tFirst, const Types&... tArgs) {
 
     std::cout << tFirst << PointDeterminated;
     auto index = sizeof...(Types)-1;
 
     auto printElem = [&tFirst, &index](const auto& x) {
-        static_assert (std::is_same_v<decltype(tFirst), decltype(x)>, "Tuple's types is diffrent!");
         std::cout << x;
 
         if(index-- > 0)
@@ -87,14 +93,16 @@ void PrintTuple(const TypeFirst& tFirst, const Types&... tArgs) {
     (printElem(tArgs), ...);
     std::cout << std::endl;
 }
-
-/// @brief 
+/// @brief ///
 /// @tparam ...Types 
+/// @tparam T 
 /// @param tuple 
-template <typename... Types>
-static void print_ip(const std::tuple<Types...>& tuple)
+/// @return 
+template <typename T, typename... Types>
+typename temp::EnableAllTypesEqual<T, Types...>
+print_ip(const std::tuple<T, Types...>& tuple)
 {
-    std::apply(PrintTuple<Types...>, tuple); 
+    std::apply(PrintTuple<T, Types...>, tuple); 
 }
 
 /**
@@ -113,13 +121,12 @@ int main()
         print_ip(int16_t{0});
         print_ip( int32_t{2130706433} );
         print_ip( int64_t{8875824491850138409} );
-
         print_ip(std::string{"Hello, World!"});
 
         print_ip( std::vector<int>{100, 200, 300, 400} ); 
         print_ip( std::list<short>{400, 300, 200, 100} ); 
         print_ip( std::make_tuple(123, 456, 789, 0) );
-        //std::tuple<std::string, std::string, std::string> tStr{"abc", "def", "gij"};
+        //std::tuple<std::string, std::string, std::string> tStr{"abc", "def"," 10"};
         //print_ip(tStr);
     }
     catch(const std::exception &e)
